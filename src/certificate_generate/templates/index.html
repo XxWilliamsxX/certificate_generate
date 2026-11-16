@@ -4,16 +4,203 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ titulo }}</title>
-    <!-- Vinculación del archivo CSS estático servido por FastAPI -->
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>{{ titulo }}</h1>
-        <p class="status">Fase 1: Servidor FastAPI configurado correctamente 🚀</p>
+    <div class="app-layout">
+        <!-- BARRA LATERAL IZQUIERDA: CONTROLES Y CAMPOS -->
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>{{ titulo }}</h1>
+                <p>Flujo visual sin código</p>
+            </div>
+
+            <!-- PASO 1: CARGAR EXCEL -->
+            <section class="panel-card">
+                <h2>1. Base de Datos (Excel)</h2>
+                <label class="file-dropzone" id="excelDropzone">
+                    <input type="file" id="excelInput" accept=".xlsx,.xls" hidden>
+                    <span id="excelLabel">Seleccionar archivo .xlsx</span>
+                </label>
+                <div id="excelStatus" class="status-badge hidden"></div>
+
+                <!-- CHIPS DE COLUMNAS DETECTADAS -->
+                <div id="columnsContainer" class="columns-box hidden">
+                    <p class="helper-text">Haz clic o arrastra un campo al certificado:</p>
+                    <div id="columnChips" class="chips-grid"></div>
+                </div>
+            </section>
+
+            <!-- PASO 2: CARGAR PLANTILLA PDF -->
+            <section class="panel-card">
+                <h2>2. Diseño Base (PDF)</h2>
+                <label class="file-dropzone" id="pdfDropzone">
+                    <input type="file" id="pdfInput" accept=".pdf" hidden>
+                    <span id="pdfLabel">Seleccionar plantilla .pdf</span>
+                </label>
+                <div id="pdfStatus" class="status-badge hidden"></div>
+
+                <!-- SELECTOR DE PÁGINAS (SI TIENE 2 O MÁS) -->
+                <div id="pageSelectorBox" class="page-selector hidden">
+                    <label for="pageSelect">Página actual:</label>
+                    <select id="pageSelect"></select>
+                </div>
+
+                <!-- SUBIR IMAGEN QR / SELLO -->
+                <div class="qr-upload-box">
+                    <label class="file-dropzone secondary-dropzone">
+                        <input type="file" id="qrInput" accept=".png,.jpg,.jpeg" hidden>
+                        <span id="qrLabel">+ Subir imagen QR / Sello (PNG/JPG)</span>
+                    </label>
+                    <div id="qrStatus" class="status-badge hidden"></div>
+                </div>
+            </section>
+
+            <!-- PASO 3: PROPIEDADES DEL CAMPO SELECCIONADO -->
+            <section class="panel-card" id="stylePanel">
+                <h2>3. Configuración diseño</h2>
+                <div id="noSelectionMsg" class="helper-text">
+                    Selecciona un cuadro en el certificado para editar su fuente, color o contenido.
+                    Carga un QR para editar su tamaño y posición.
+                </div>
+
+                <div id="styleControls" class="style-form hidden">
+                    <h2>Estilos de Campos</h2>
+                    <div class="form-group">
+                        <label for="fieldTemplateText">Contenido / Combinación:</label>
+                        <input type="text" id="fieldTemplateText" placeholder="Ej: {DATOS COMPLETOS}">
+                        <small class="hint">Puedes combinar columnas: {GRADO} {NOMBRES}</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fontFamily">Tipografía:</label>
+                            <select id="fontFamily">
+                                <option value="arial">Arial / Helvetica</option>
+                                <option value="times">Times New Roman</option>
+                                <option value="courier">Courier</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fontSize">Tamaño (pt):</label>
+                            <input type="number" id="fontSize" min="6" max="120" value="18">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fontColor">Color:</label>
+                            <input type="color" id="fontColor" value="#0f2c59">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Formato:</label>
+                            <div class="btn-group">
+                                <button type="button" id="btnBold" class="toggle-btn" title="Negrita"><b>B</b></button>
+                                <button type="button" id="btnItalic" class="toggle-btn" title="Cursiva"><i>I</i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Alineación horizontal:</label>
+                        <div class="btn-group full-width">
+                            <button type="button" class="align-btn" data-align="left">Izquierda</button>
+                            <button type="button" class="align-btn active" data-align="center">Centro</button>
+                            <button type="button" class="align-btn" data-align="right">Derecha</button>
+                        </div>
+                    </div>
+
+                    <div class="coords-readout" id="coordsReadout">
+                        X: 0 pt | Y: 0 pt | Ancho: 300 pt
+                    </div>
+
+                    <button type="button" id="btnDeleteField" class="btn-danger">
+                        Eliminar campo seleccionado
+                    </button>
+                </div>
+
+                <div id="imageControls" class="style-form hidden">
+                    <h2>QR opciones</h2>
+                    <div class="form-group">
+                        <label for="imageWidthInput">Tamaño / Ancho del QR (pt):</label>
+                        <input type="number" id="imageWidthInput" min="20" max="500" value="85">
+                        <small class="hint">También puedes estirarlo desde su esquina en el lienzo</small>
+                    </div>
+
+                    <div class="coords-readout" id="imageCoordsReadout">
+                        X: 0 pt | Y: 0 pt | 85 x 85 pt
+                    </div>
+
+                    <button type="button" id="btnDeleteImage" class="btn-danger">
+                        Eliminar imagen QR
+                    </button>
+                </div>
+            </section>
+
+            <!-- PASO 4: CONFIGURACIÓN DE EMISIÓN MASIVA -->
+            <section class="panel-card">
+                <h2>4. Emisión Masiva (Lote)</h2>
+                <div class="style-form">
+                    <div class="form-group">
+                        <label for="filenamePattern">Nombre de archivo PDF:</label>
+                        <input type="text" id="filenamePattern" placeholder="OBS 05 2026 - Certificado N_{CORRELATIVO} - [{CODIFICACIÓN}]" value="ESC 01 2026 - Certificado N_{CORRELATIVO}">
+                        <small class="hint">Usa <b>{CORRELATIVO}</b> y columnas entre llaves</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startRow">Desde fila:</label>
+                            <input type="number" id="startRow" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="endRow">Hasta fila:</label>
+                            <input type="number" id="endRow" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startCorrelative">Iniciar correlativo en (N_):</label>
+                        <input type="number" id="startCorrelative" min="1" value="1">
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL DERECHA: LIENZO INTERACTIVO -->
+        <main class="workspace">
+            <header class="workspace-toolbar">
+                <div class="toolbar-info">
+                    <span id="workspaceHint">Carga el Excel y la plantilla PDF para comenzar el diseño</span>
+                </div>
+                <div class="toolbar-actions">
+                    <button type="button" id="btnPreviewSample" class="btn-secondary" disabled>
+                        Vista Previa (Fila 1)
+                    </button>
+                    <button type="button" id="btnGenerateBatch" class="btn-primary" disabled>
+                        Generar Todos (ZIP)
+                    </button>
+                </div>
+            </header>
+
+            <div class="canvas-viewport" id="canvasViewport">
+                <div id="emptyCanvasPlaceholder" class="empty-state">
+                    <p>El lienzo del certificado aparecerá aquí</p>
+                    <span>Sube un archivo PDF en el panel izquierdo</span>
+                </div>
+
+                <!-- CONTENEDOR ESCALADO DEL CERTIFICADO -->
+                <div id="certificateStage" class="certificate-stage hidden">
+                    <img id="certificateBgImage" src="" alt="Vista previa del certificado" draggable="false">
+                    <div id="guideLineVertical" class="center-guide vertical hidden"></div>
+                    <div id="guideLineHorizontal" class="center-guide horizontal hidden"></div>
+                    <div id="fieldsOverlayLayer" class="fields-overlay-layer"></div>
+                </div>
+            </div>
+        </main>
     </div>
-    
-    <!-- Vinculación del archivo JS estático servido por FastAPI -->
+
     <script src="/static/js/app.js"></script>
 </body>
 </html>
